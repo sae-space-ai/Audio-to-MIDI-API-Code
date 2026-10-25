@@ -1,14 +1,40 @@
 import { NoteData } from './types';
 
 /**
+ * Quantize a time value to the nearest grid position
+ * @param time - Time in seconds
+ * @param bpm - Tempo in BPM
+ * @param subdivision - Grid subdivision (1 = quarter, 0.5 = eighth, 0.25 = sixteenth)
+ */
+function quantizeTime(time: number, bpm: number, subdivision: number = 0.25): number {
+  const beatDuration = 60 / bpm;
+  const gridDuration = beatDuration * subdivision;
+  return Math.round(time / gridDuration) * gridDuration;
+}
+
+/**
+ * Apply perfect quantization to all notes
+ */
+function quantizeNotes(notes: NoteData[], bpm: number): NoteData[] {
+  return notes.map(note => ({
+    ...note,
+    start: quantizeTime(note.start, bpm, 0.25),
+    end: quantizeTime(note.end, bpm, 0.25),
+  }));
+}
+
+/**
  * Generate a real MIDI file as a downloadable blob
  * MIDI format: Standard MIDI File (SMF) Type 1
+ * All notes are perfectly quantized to sixteenth note grid
  */
 export function generateMidiFile(
   notes: NoteData[],
   tempoBpm: number,
   title: string = 'Transcription'
 ): Blob {
+  // Apply perfect quantization
+  const quantizedNotes = quantizeNotes(notes, tempoBpm);
   const bytes: number[] = [];
   
   // Helper to write variable-length quantity
@@ -74,7 +100,7 @@ export function generateMidiFile(
   trackData.push(4, 2, 24, 8); // 4/4 time
   
   // Sort notes by start time
-  const sortedNotes = [...notes].sort((a, b) => a.start - b.start);
+  const sortedNotes = [...quantizedNotes].sort((a, b) => a.start - b.start);
   
   // Create events: note on and note off
   interface MidiEvent {
@@ -137,12 +163,15 @@ export function generateMidiFile(
 
 /**
  * Generate a real MusicXML file as a downloadable blob
+ * All notes are perfectly quantized to sixteenth note grid
  */
 export function generateMusicXml(
   notes: NoteData[],
   tempoBpm: number,
   title: string = 'Transcription'
 ): Blob {
+  // Apply perfect quantization
+  const quantizedNotes = quantizeNotes(notes, tempoBpm);
   // MIDI note to pitch name
   function midiToPitch(midi: number): { step: string; octave: number; alter?: number } {
     const noteNames = ['C', 'C', 'D', 'D', 'E', 'F', 'F', 'G', 'G', 'A', 'A', 'B'];
@@ -160,7 +189,7 @@ export function generateMusicXml(
   }
   
   // Sort notes by start time
-  const sortedNotes = [...notes].sort((a, b) => a.start - b.start);
+  const sortedNotes = [...quantizedNotes].sort((a, b) => a.start - b.start);
   
   // Build note elements
   let noteElements = '';
