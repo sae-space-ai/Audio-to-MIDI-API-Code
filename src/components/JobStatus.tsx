@@ -1,21 +1,27 @@
-import { Loader2, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
-import { JobStatus as JobStatusType } from '../types';
+import { Loader2, CheckCircle2, Clock, AlertCircle, Zap } from 'lucide-react';
+import { AsyncJobStatus, ApiMode } from '../types';
 
 interface JobStatusProps {
-  status: JobStatusType | null;
+  status: AsyncJobStatus | null;
   appState: string;
   jobId: string | null;
+  apiMode: ApiMode;
 }
 
-export default function JobStatus({ status, appState, jobId }: JobStatusProps) {
+export default function JobStatus({ status, appState, jobId, apiMode }: JobStatusProps) {
   if (appState === 'idle' && !status) {
     return (
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
         <div className="flex items-center gap-2 mb-3">
           <Clock className="w-4 h-4 text-gray-500" />
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Job Status</h3>
+          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Status</h3>
         </div>
-        <p className="text-sm text-gray-500">Waiting for conversion...</p>
+        <p className="text-sm text-gray-500">Waiting for transcription...</p>
+        <div className="mt-4 p-3 rounded-xl bg-black/20">
+          <p className="text-xs text-gray-500">
+            Mode: <span className="text-gray-300 font-medium">{apiMode === 'sync' ? '⚡ Synchronous' : '🔄 Asynchronous'}</span>
+          </p>
+        </div>
       </div>
     );
   }
@@ -30,10 +36,45 @@ export default function JobStatus({ status, appState, jobId }: JobStatusProps) {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
-            <span className="text-sm text-gray-300">Uploading audio file...</span>
+            <span className="text-sm text-gray-300">Uploading audio to Mirelo assets...</span>
           </div>
           <div className="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
             <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full animate-pulse w-2/3" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (appState === 'preflight') {
+    return (
+      <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="w-4 h-4 text-amber-400 animate-pulse" />
+          <h3 className="text-sm font-semibold text-amber-300 uppercase tracking-wider">Preflight</h3>
+        </div>
+        <p className="text-sm text-gray-300">Checking cost estimate before committing...</p>
+      </div>
+    );
+  }
+
+  if (appState === 'processing' && apiMode === 'sync') {
+    return (
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+          <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Transcribing</h3>
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+            <span className="text-sm text-gray-300">Sync request in progress...</span>
+          </div>
+          <p className="text-xs text-gray-500">
+            Connection stays open until transcription completes. This may take 10–60 seconds depending on audio length.
+          </p>
+          <div className="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-1000 animate-pulse w-1/2" />
           </div>
         </div>
       </div>
@@ -102,6 +143,18 @@ export default function JobStatus({ status, appState, jobId }: JobStatusProps) {
             </div>
           )}
         </div>
+      </div>
+    );
+  }
+
+  if (appState === 'completed' && !status) {
+    return (
+      <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-sm font-semibold text-emerald-300 uppercase tracking-wider">Sync Complete</h3>
+        </div>
+        <p className="text-xs text-gray-400">Result received from synchronous request.</p>
       </div>
     );
   }
