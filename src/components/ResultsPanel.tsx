@@ -1,17 +1,49 @@
 import { Download, Music, Clock, Hash, Zap, FileText } from 'lucide-react';
 import { SyncResult } from '../types';
+import { generateMidiFile, generateMusicXml, createDownloadUrl } from '../fileGenerators';
+import { useEffect, useState, useRef } from 'react';
 
 interface ResultsPanelProps {
   result: SyncResult;
 }
 
 export default function ResultsPanel({ result }: ResultsPanelProps) {
+  const [downloadUrls, setDownloadUrls] = useState<{
+    midi?: string;
+    musicxml?: string;
+  }>({});
+  const urlsRef = useRef<{ midi?: string; musicxml?: string }>({});
+
+  // Generate real downloadable files
+  useEffect(() => {
+    // Revoke previous URLs
+    if (urlsRef.current.midi) URL.revokeObjectURL(urlsRef.current.midi);
+    if (urlsRef.current.musicxml) URL.revokeObjectURL(urlsRef.current.musicxml);
+
+    if (result.notes && result.notes.length > 0) {
+      const midiBlob = generateMidiFile(result.notes, result.tempo_bpm, 'Audio-to-MIDI Transcription');
+      const musicxmlBlob = generateMusicXml(result.notes, result.tempo_bpm, 'Audio-to-MIDI Transcription');
+      
+      const midiUrl = createDownloadUrl(midiBlob);
+      const musicxmlUrl = createDownloadUrl(musicxmlBlob);
+      
+      urlsRef.current = { midi: midiUrl, musicxml: musicxmlUrl };
+      setDownloadUrls({ midi: midiUrl, musicxml: musicxmlUrl });
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (urlsRef.current.midi) URL.revokeObjectURL(urlsRef.current.midi);
+      if (urlsRef.current.musicxml) URL.revokeObjectURL(urlsRef.current.musicxml);
+    };
+  }, [result]);
+
   const downloadLinks = [
-    result.midi_url && { url: result.midi_url, label: 'MIDI File', ext: '.mid', icon: '🎵' },
-    result.musicxml_url && { url: result.musicxml_url, label: 'MusicXML', ext: '.musicxml', icon: '📄' },
-    result.score_bundle_url && { url: result.score_bundle_url, label: 'Score Bundle (ZIP)', ext: '.zip', icon: '📦' },
-    result.score_manifest_url && { url: result.score_manifest_url, label: 'Score Manifest', ext: '.json', icon: '📋' },
-  ].filter(Boolean) as { url: string; label: string; ext: string; icon: string }[];
+    downloadUrls.midi && { url: downloadUrls.midi, label: 'MIDI File', ext: '.mid', icon: '🎵', filename: 'transcription.mid' },
+    downloadUrls.musicxml && { url: downloadUrls.musicxml, label: 'MusicXML', ext: '.musicxml', icon: '📄', filename: 'transcription.musicxml' },
+    result.score_bundle_url && { url: result.score_bundle_url, label: 'Score Bundle (ZIP)', ext: '.zip', icon: '📦', filename: 'score_bundle.zip' },
+    result.score_manifest_url && { url: result.score_manifest_url, label: 'Score Manifest', ext: '.json', icon: '📋', filename: 'score_manifest.json' },
+  ].filter(Boolean) as { url: string; label: string; ext: string; icon: string; filename: string }[];
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm space-y-5">
@@ -106,14 +138,13 @@ export default function ResultsPanel({ result }: ResultsPanelProps) {
             <a
               key={i}
               href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-indigo-500/30 transition-all group"
+              download={link.filename}
+              className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-indigo-500/30 transition-all group cursor-pointer"
             >
               <span className="text-xl">{link.icon}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-200 group-hover:text-white">{link.label}</p>
-                <p className="text-xs text-gray-500">{link.ext}</p>
+                <p className="text-xs text-gray-500">{link.ext} • Click to download</p>
               </div>
               <Download className="w-4 h-4 text-gray-400 group-hover:text-indigo-400 transition-colors" />
             </a>
