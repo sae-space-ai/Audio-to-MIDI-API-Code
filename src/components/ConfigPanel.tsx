@@ -213,11 +213,18 @@ export default function ConfigPanel({ config, onChange, disabled }: ConfigPanelP
           className="flex items-center justify-between w-full text-left"
         >
           <div>
-            <label className="text-sm font-medium text-gray-300">Instruments</label>
+            <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+              Instruments
+              {config.instruments.length === 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-normal">
+                  ✓ Recommended
+                </span>
+              )}
+            </label>
             <p className="text-xs text-gray-500 mt-0.5">
               {config.instruments.length === 0
-                ? 'Auto-detect (recommended)'
-                : `${config.instruments.length} selected`}
+                ? 'Model detects instruments automatically — safest option'
+                : `${config.instruments.length} selected — only if you know ALL instruments`}
             </p>
           </div>
           {showInstruments ? (
@@ -235,14 +242,14 @@ export default function ConfigPanel({ config, onChange, disabled }: ConfigPanelP
                 disabled={disabled}
                 className="px-3 py-1.5 text-xs rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-50"
               >
-                Select All
+                Select All (35)
               </button>
               <button
                 onClick={clearAll}
                 disabled={disabled}
-                className="px-3 py-1.5 text-xs rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-50"
+                className="px-3 py-1.5 text-xs rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 transition-all disabled:opacity-50 font-medium"
               >
-                Clear (Auto-detect)
+                ✓ Auto-Detect
               </button>
             </div>
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
@@ -273,10 +280,27 @@ export default function ConfigPanel({ config, onChange, disabled }: ConfigPanelP
               })}
             </div>
             {config.instruments.length > 0 && (
-              <div className="p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/10">
-                <p className="text-[10px] text-amber-400/80">
-                  ⚠️ A partial instrument list may cause the model to split real parts in two. A name that is not playing makes the model split a real part. <strong>Leave empty for auto-detection</strong> if unsure.
-                </p>
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-400 text-sm flex-shrink-0">⚠️</span>
+                  <div className="text-[11px] text-amber-300/90 leading-relaxed">
+                    <p className="font-semibold mb-1">Partial list risks:</p>
+                    <ul className="space-y-0.5 text-amber-400/80">
+                      <li>• Missing instrument → won't appear in output</li>
+                      <li>• Extra instrument → splits real parts incorrectly</li>
+                    </ul>
+                    <p className="mt-1.5 text-amber-300 font-medium">
+                      💡 Only specify if you know <strong>ALL</strong> instruments present
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={clearAll}
+                  disabled={disabled}
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-all font-medium disabled:opacity-50"
+                >
+                  🎯 Use Auto-Detection (Recommended)
+                </button>
               </div>
             )}
           </div>
