@@ -90,7 +90,7 @@ export default function App() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [apiMode, setApiMode] = useState<ApiMode>('sync');
   const [config, setConfig] = useState<JobConfig>({
-    timing: 'performance',
+    timing: 'quantized',
     tempo: null,
     optimize_musicxml: false,
     score_pdfs: false,
@@ -851,6 +851,11 @@ export default function App() {
                   </div>
                 </div>
                 <div className="mt-6 space-y-2">
+                  <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                    <p className="text-xs text-emerald-300/70">
+                      🎯 <strong>Quantized</strong> timing is active by default — perfect rhythmic grid alignment.
+                    </p>
+                  </div>
                   <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
                     <p className="text-xs text-indigo-300/70">
                       💡 <strong>Performance</strong> timing preserves natural feel. <strong>Quantized</strong> snaps to a rhythmic grid.
@@ -858,7 +863,7 @@ export default function App() {
                   </div>
                   <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
                     <p className="text-xs text-purple-300/70">
-                      🎯 All instruments selected by default. Deselect those not in your audio.
+                      🎵 All instruments selected by default. Deselect those not in your audio.
                     </p>
                   </div>
                 </div>
