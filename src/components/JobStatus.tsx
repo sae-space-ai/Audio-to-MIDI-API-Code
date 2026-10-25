@@ -8,9 +8,10 @@ interface JobStatusProps {
   apiMode: ApiMode;
   progressMessage?: string;
   result?: SyncResult | null;
+  demoMode?: boolean;
 }
 
-export default function JobStatus({ status, appState, jobId, apiMode, progressMessage = '', result }: JobStatusProps) {
+export default function JobStatus({ status, appState, jobId, apiMode, progressMessage = '', result, demoMode = false }: JobStatusProps) {
   if (appState === 'idle' && !status) {
     return (
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
@@ -18,16 +19,28 @@ export default function JobStatus({ status, appState, jobId, apiMode, progressMe
           <Clock className="w-4 h-4 text-gray-500" />
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Status</h3>
         </div>
-        <p className="text-sm text-gray-500">Waiting for transcription...</p>
+        <p className="text-sm text-gray-500">
+          {demoMode ? '🎭 Demo ready — upload audio to simulate transcription' : 'Waiting for transcription...'}
+        </p>
         <div className="mt-4 p-3 rounded-xl bg-black/20 space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-gray-500">Mode</span>
-            <span className="text-gray-300 font-medium">{apiMode === 'sync' ? '⚡ Synchronous' : '🔄 Asynchronous'}</span>
+            <span className="text-gray-300 font-medium">
+              {demoMode ? '🎭 Demo' : apiMode === 'sync' ? '⚡ Synchronous' : '🔄 Asynchronous'}
+            </span>
           </div>
           <div className="flex items-center justify-between text-xs">
             <span className="text-gray-500">Endpoint</span>
-            <code className="text-indigo-300 text-[10px]">{apiMode === 'sync' ? '/v2/audio-to-midi/v1.0/sync' : '/v2/audio-to-midi/v1.0/jobs'}</code>
+            <code className="text-indigo-300 text-[10px]">
+              {demoMode ? '(simulated)' : apiMode === 'sync' ? '/v2/audio-to-midi/v1.0/sync' : '/v2/audio-to-midi/v1.0/jobs'}
+            </code>
           </div>
+          {demoMode && (
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500">API Key</span>
+              <span className="text-emerald-400 text-[10px]">✓ Not required</span>
+            </div>
+          )}
         </div>
       </div>
     );

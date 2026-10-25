@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music, Upload, Settings, Loader2, AlertCircle, Key, FileAudio, Waves, Zap, CheckCircle2, Link2 } from 'lucide-react';
+import { Music, Upload, Settings, Loader2, AlertCircle, Key, FileAudio, Waves, Zap, CheckCircle2, Link2, FlaskConical } from 'lucide-react';
 import FileUpload from './components/FileUpload';
 import ConfigPanel from './components/ConfigPanel';
 import JobStatus from './components/JobStatus';
 import ResultsPanel from './components/ResultsPanel';
 import { JobConfig, SyncResult, AsyncJobStatus, PreflightResult, ApiMode, AVAILABLE_INSTRUMENTS } from './types';
+import { MOCK_PREFLIGHT, generateMockJobId, delay, generateMockResult } from './mockData';
 
 type AppState = 'idle' | 'uploading' | 'preflight' | 'processing' | 'completed' | 'error';
 
@@ -85,6 +86,7 @@ function buildRequestBody(
 export default function App() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('mirelo_api_key') || '');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [demoMode, setDemoMode] = useState(true);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [apiMode, setApiMode] = useState<ApiMode>('sync');
   const [config, setConfig] = useState<JobConfig>({
@@ -227,12 +229,6 @@ export default function App() {
    * Main submission handler
    */
   const handleSubmit = useCallback(async () => {
-    if (!apiKey) {
-      setError('Please enter your API key');
-      setAppState('error');
-      return;
-    }
-
     // Validate audio source
     if (config.audioSource === 'file' && !audioFile) {
       setError('Please upload an audio file');
@@ -250,9 +246,11 @@ export default function App() {
       return;
     }
 
-    // Validate instruments warning
-    if (config.instruments.length > 0 && config.instruments.length < 3) {
-      // Just a warning, not blocking
+    // Validate API key for non-demo mode
+    if (!demoMode && !apiKey) {
+      setError('Please enter your API key or enable Demo Mode');
+      setAppState('error');
+      return;
     }
 
     // Create abort controller
@@ -265,6 +263,83 @@ export default function App() {
     setProgressMessage('');
 
     try {
+      // DEMO MODE - Simulate the entire flow
+      if (demoMode) {
+        // Simulate upload
+        setProgressMessage('🎭 Demo: Analyzing audio file...');
+        await delay(1500);
+        
+        if (signal.aborted) throw new Error('Request cancelled');
+
+        // Simulate preflight if enabled
+        if (config.usePreflight) {
+          setAppState('preflight');
+          setProgressMessage('🎭 Demo: Checking cost estimate...');
+          await delay(1000);
+          setPreflight(MOCK_PREFLIGHT);
+          setProgressMessage(`🎭 Demo: ${MOCK_PREFLIGHT.credits} credits, ~${(MOCK_PREFLIGHT.estimated_ms / 1000).toFixed(1)}s`);
+          await delay(800);
+        }
+
+        if (signal.aborted) throw new Error('Request cancelled');
+
+        setAppState('processing');
+
+        if (apiMode === 'sync') {
+          // Simulate sync request
+          setProgressMessage('🎭 Demo: Transcribing audio...');
+          await delay(2000);
+          
+          if (signal.aborted) throw new Error('Request cancelled');
+          
+          const mockResult = generateMockResult({
+            timing: config.timing,
+            instruments: config.instruments,
+            tempo: config.tempo,
+          });
+          
+          setResult(mockResult);
+          setAppState('completed');
+          setProgressMessage('');
+        } else {
+          // Simulate async request
+          const mockJobId = generateMockJobId();
+          setJobId(mockJobId);
+          setProgressMessage(`🎭 Demo: Job ${mockJobId} created. Processing...`);
+          
+          const mockJob: AsyncJobStatus = {
+            job_id: mockJobId,
+            status: 'processing',
+            created_at: new Date().toISOString(),
+          };
+          setJobStatus(mockJob);
+          
+          await delay(1500);
+          
+          if (signal.aborted) throw new Error('Request cancelled');
+          
+          // Simulate job completion
+          const completedJob: AsyncJobStatus = {
+            ...mockJob,
+            status: 'succeeded',
+            completed_at: new Date().toISOString(),
+            result: generateMockResult({
+              timing: config.timing,
+              instruments: config.instruments,
+              tempo: config.tempo,
+            }),
+          };
+          
+          setJobStatus(completedJob);
+          setResult(completedJob.result!);
+          setAppState('completed');
+          setProgressMessage('');
+        }
+        
+        return;
+      }
+
+      // REAL API MODE
       let audioParam: { type: 'asset'; asset_id: string } | { type: 'url'; audio_url: string };
       let durationMs = 30000; // default fallback
 
@@ -364,10 +439,10 @@ export default function App() {
       setAppState('error');
       setProgressMessage('');
     }
-  }, [apiKey, audioFile, config, apiMode, uploadAsset, runPreflight, pollJob]);
+  }, [apiKey, audioFile, config, apiMode, demoMode, uploadAsset, runPreflight, pollJob]);
 
   const isProcessing = appState === 'uploading' || appState === 'preflight' || appState === 'processing';
-  const canSubmit = apiKey && (
+  const canSubmit = (demoMode || apiKey) && (
     (config.audioSource === 'file' && audioFile) ||
     (config.audioSource === 'url' && config.audioUrl.trim().startsWith('http'))
   );
@@ -387,6 +462,12 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {demoMode && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300">
+                <FlaskConical className="w-3 h-3" />
+                Demo Mode
+              </span>
+            )}
             <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300">
               <Zap className="w-3 h-3" />
               Sync & Async
@@ -396,6 +477,54 @@ export default function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
+        {/* Demo Mode Banner */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="mb-6"
+        >
+          <div className={`rounded-2xl p-5 backdrop-blur-sm border ${
+            demoMode 
+              ? 'bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/30' 
+              : 'bg-white/5 border-white/10'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  demoMode ? 'bg-purple-500/20' : 'bg-gray-700'
+                }`}>
+                  <FlaskConical className={`w-5 h-5 ${demoMode ? 'text-purple-300' : 'text-gray-400'}`} />
+                </div>
+                <div>
+                  <h2 className={`text-sm font-semibold uppercase tracking-wider ${
+                    demoMode ? 'text-purple-200' : 'text-gray-300'
+                  }`}>
+                    {demoMode ? '🎭 Demo Mode Active' : 'Live API Mode'}
+                  </h2>
+                  <p className={`text-xs mt-0.5 ${demoMode ? 'text-purple-300/70' : 'text-gray-500'}`}>
+                    {demoMode 
+                      ? 'No API key needed — simulates the full transcription flow' 
+                      : 'Real API calls to Mirelo AI — requires valid API key'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDemoMode(!demoMode)}
+                className={`relative w-14 h-7 rounded-full transition-colors ${
+                  demoMode ? 'bg-purple-500' : 'bg-gray-700'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white transition-transform shadow-sm ${
+                    demoMode ? 'translate-x-7' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </motion.section>
+
         {/* API Key Section */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
@@ -403,10 +532,16 @@ export default function App() {
           transition={{ delay: 0.1 }}
           className="mb-8"
         >
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
+          <div className={`bg-white/5 border rounded-2xl p-6 backdrop-blur-sm transition-opacity ${
+            demoMode ? 'opacity-50 border-white/5' : 'border-white/10'
+          }`}>
             <div className="flex items-center gap-2 mb-3">
-              <Key className="w-4 h-4 text-indigo-400" />
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">API Key</h2>
+              <Key className={`w-4 h-4 ${demoMode ? 'text-gray-500' : 'text-indigo-400'}`} />
+              <h2 className={`text-sm font-semibold uppercase tracking-wider ${
+                demoMode ? 'text-gray-500' : 'text-gray-300'
+              }`}>
+                API Key {demoMode && '(Not needed in demo)'}
+              </h2>
             </div>
             <div className="flex gap-3">
               <div className="relative flex-1">
@@ -415,7 +550,8 @@ export default function App() {
                   value={apiKey}
                   onChange={(e) => handleApiKeyChange(e.target.value)}
                   placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all font-mono"
+                  disabled={demoMode}
+                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
                   onClick={() => setShowApiKey(!showApiKey)}
@@ -426,7 +562,9 @@ export default function App() {
               </div>
             </div>
             <p className="mt-2 text-xs text-gray-500">
-              🔒 Stored locally in your browser. Sent only to api.mirelo.ai for authentication.
+              {demoMode 
+                ? '💡 Demo mode is active. Get your API key from mirelo.ai to use the real API.'
+                : '🔒 Stored locally in your browser. Sent only to api.mirelo.ai for authentication.'}
             </p>
           </div>
         </motion.section>
@@ -593,8 +731,7 @@ export default function App() {
               )}
               {!isProcessing && !canSubmit && appState === 'idle' && (
                 <p className="mt-2 text-xs text-gray-500 text-center">
-                  {!apiKey ? 'Enter your API key to begin' : 
-                   config.audioSource === 'file' ? 'Upload an audio file to continue' : 
+                  {config.audioSource === 'file' ? 'Upload an audio file to continue' : 
                    'Enter a public audio URL to continue'}
                 </p>
               )}
@@ -640,7 +777,7 @@ export default function App() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ delay: 0.3 }}
                 >
-                  <JobStatus status={jobStatus} appState={appState} jobId={jobId} apiMode={apiMode} progressMessage={progressMessage} result={result} />
+                  <JobStatus status={jobStatus} appState={appState} jobId={jobId} apiMode={apiMode} progressMessage={progressMessage} result={result} demoMode={demoMode} />
                 </motion.section>
               )}
 
@@ -734,7 +871,9 @@ export default function App() {
       {/* Footer */}
       <footer className="border-t border-white/5 mt-16">
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-600 gap-2">
-          <span>Audio-to-MIDI Pro — Full-featured transcription client</span>
+          <span>
+            Audio-to-MIDI Pro — {demoMode ? '🎭 Demo Mode (no API key required)' : 'Live API Mode'}
+          </span>
           <span>API by Mirelo AI • Endpoint: /v2/audio-to-midi/v1.0</span>
         </div>
       </footer>
