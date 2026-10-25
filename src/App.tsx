@@ -5,7 +5,7 @@ import FileUpload from './components/FileUpload';
 import ConfigPanel from './components/ConfigPanel';
 import JobStatus from './components/JobStatus';
 import ResultsPanel from './components/ResultsPanel';
-import { JobConfig, SyncResult, AsyncJobStatus, PreflightResult, ApiMode } from './types';
+import { JobConfig, SyncResult, AsyncJobStatus, PreflightResult, ApiMode, AVAILABLE_INSTRUMENTS } from './types';
 
 type AppState = 'idle' | 'uploading' | 'preflight' | 'processing' | 'completed' | 'error';
 
@@ -76,10 +76,8 @@ function buildRequestBody(
     body.page_size = config.page_size;
   }
 
-  // instruments: only include if non-empty
-  if (config.instruments.length > 0) {
-    body.instruments = config.instruments;
-  }
+  // instruments: always include (defaults to all instruments)
+  body.instruments = config.instruments;
 
   return body;
 }
@@ -95,7 +93,7 @@ export default function App() {
     optimize_musicxml: false,
     score_pdfs: false,
     page_size: 'a4',
-    instruments: [],
+    instruments: AVAILABLE_INSTRUMENTS.map(i => i.id),
     usePreflight: false,
     audioSource: 'file',
     audioUrl: '',
@@ -723,7 +721,7 @@ export default function App() {
                   </div>
                   <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
                     <p className="text-xs text-purple-300/70">
-                      🎯 Leave instruments empty for auto-detection. A partial list may cause issues.
+                      🎯 All instruments selected by default. Deselect those not in your audio.
                     </p>
                   </div>
                 </div>

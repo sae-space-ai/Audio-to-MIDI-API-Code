@@ -215,16 +215,16 @@ export default function ConfigPanel({ config, onChange, disabled }: ConfigPanelP
           <div>
             <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
               Instruments
-              {config.instruments.length === 0 && (
+              {config.instruments.length === AVAILABLE_INSTRUMENTS.length && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-normal">
-                  ✓ Recommended
+                  ✓ All Selected
                 </span>
               )}
             </label>
             <p className="text-xs text-gray-500 mt-0.5">
-              {config.instruments.length === 0
-                ? 'Model detects instruments automatically — safest option'
-                : `${config.instruments.length} selected — only if you know ALL instruments`}
+              {config.instruments.length === AVAILABLE_INSTRUMENTS.length
+                ? 'All instruments included — deselect those not in your audio'
+                : `${config.instruments.length} of ${AVAILABLE_INSTRUMENTS.length} selected`}
             </p>
           </div>
           {showInstruments ? (
@@ -240,16 +240,16 @@ export default function ConfigPanel({ config, onChange, disabled }: ConfigPanelP
               <button
                 onClick={selectAll}
                 disabled={disabled}
-                className="px-3 py-1.5 text-xs rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-50"
+                className="px-3 py-1.5 text-xs rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 transition-all disabled:opacity-50 font-medium"
               >
-                Select All (35)
+                ✓ Select All ({AVAILABLE_INSTRUMENTS.length})
               </button>
               <button
                 onClick={clearAll}
                 disabled={disabled}
-                className="px-3 py-1.5 text-xs rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 transition-all disabled:opacity-50 font-medium"
+                className="px-3 py-1.5 text-xs rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-50"
               >
-                ✓ Auto-Detect
+                Clear All
               </button>
             </div>
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
@@ -279,27 +279,25 @@ export default function ConfigPanel({ config, onChange, disabled }: ConfigPanelP
                 );
               })}
             </div>
-            {config.instruments.length > 0 && (
+            {config.instruments.length < AVAILABLE_INSTRUMENTS.length && (
               <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2">
                 <div className="flex items-start gap-2">
                   <span className="text-amber-400 text-sm flex-shrink-0">⚠️</span>
                   <div className="text-[11px] text-amber-300/90 leading-relaxed">
-                    <p className="font-semibold mb-1">Partial list risks:</p>
+                    <p className="font-semibold mb-1">Removing instruments:</p>
                     <ul className="space-y-0.5 text-amber-400/80">
-                      <li>• Missing instrument → won't appear in output</li>
-                      <li>• Extra instrument → splits real parts incorrectly</li>
+                      <li>• Deselect instruments <strong>not present</strong> in your audio</li>
+                      <li>• Keep instruments that <strong>are playing</strong> in the audio</li>
+                      <li>• If unsure, keep all selected for best results</li>
                     </ul>
-                    <p className="mt-1.5 text-amber-300 font-medium">
-                      💡 Only specify if you know <strong>ALL</strong> instruments present
-                    </p>
                   </div>
                 </div>
                 <button
-                  onClick={clearAll}
+                  onClick={selectAll}
                   disabled={disabled}
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-all font-medium disabled:opacity-50"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 transition-all font-medium disabled:opacity-50"
                 >
-                  🎯 Use Auto-Detection (Recommended)
+                  ✓ Restore All Instruments
                 </button>
               </div>
             )}
