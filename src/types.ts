@@ -1,6 +1,7 @@
 export type TimingMode = 'performance' | 'quantized';
 export type PageSize = 'a4' | 'letter';
 export type ApiMode = 'sync' | 'async';
+export type AudioSource = 'file' | 'url';
 
 export interface TempoConfig {
   mode: 'fixed';
@@ -9,12 +10,14 @@ export interface TempoConfig {
 
 export interface JobConfig {
   timing: TimingMode;
-  tempo?: TempoConfig | null;
+  tempo: TempoConfig | null;
   optimize_musicxml: boolean;
   score_pdfs: boolean;
   page_size: PageSize;
   instruments: string[];
   usePreflight: boolean;
+  audioSource: AudioSource;
+  audioUrl: string;
 }
 
 export interface NoteData {
